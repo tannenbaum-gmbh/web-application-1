@@ -1,5 +1,6 @@
 package com.demo.stockchecker.controller;
 
+import com.demo.stockchecker.config.TestSecurityConfig;
 import com.demo.stockchecker.exception.StockNotFoundException;
 import com.demo.stockchecker.model.Stock;
 import com.demo.stockchecker.service.StockService;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -33,6 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @version 1.0.0
  */
 @WebMvcTest(StockController.class)
+@Import(TestSecurityConfig.class)
 class StockControllerTest {
 
     @Autowired
