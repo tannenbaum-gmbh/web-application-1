@@ -38,7 +38,7 @@ jobs:
       
       - name: Run Code Compliance Review
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_COPILOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN}}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_REF: ${{ github.head_ref }}
