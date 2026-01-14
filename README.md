@@ -171,6 +171,56 @@ curl -X PUT http://localhost:8080/api/stocks/AAPL/price \
 
 ---
 
+## 🔄 CI/CD Pipeline
+
+### Release Pipeline
+The project includes an automated release pipeline that triggers on new GitHub releases.
+
+**Workflow**: `.github/workflows/release.yml`
+
+**Trigger**: Creating a new GitHub release (published)
+
+**Pipeline Steps**:
+1. **Checkout Code** - Retrieves the latest code from the repository
+2. **Set up Java 17** - Configures Java 17 environment with Temurin distribution
+3. **Build and Test** - Runs `mvn clean install -B` (compiles, tests, and packages the application)
+4. **Simulated Azure Deployment** - Demonstrates deployment process to Azure App Service
+5. **Report Status** - Provides deployment summary with individual step outcomes
+
+### Creating a Release to Trigger the Pipeline
+
+Using GitHub CLI:
+```bash
+# Create a new release
+gh release create v1.0.0 --title "Release v1.0.0" --notes "Initial release"
+```
+
+Using GitHub Web Interface:
+1. Navigate to the repository on GitHub
+2. Click on "Releases" in the right sidebar
+3. Click "Draft a new release"
+4. Create a new tag (e.g., `v1.0.0`)
+5. Add release title and description
+6. Click "Publish release"
+
+The release pipeline will automatically start and you can monitor its progress in the "Actions" tab.
+
+### Monitoring Pipeline Execution
+
+View workflow runs:
+```bash
+# List recent workflow runs
+gh run list --workflow=release.yml
+
+# View details of a specific run
+gh run view <run-id>
+
+# View logs of a specific run
+gh run view <run-id> --log
+```
+
+---
+
 ## 📖 Implementation Plan
 
 ### Phase 1: Project Foundation (1 hour)
