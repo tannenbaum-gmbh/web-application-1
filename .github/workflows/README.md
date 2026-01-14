@@ -31,9 +31,9 @@ Checks out the current repository with PR changes into `web-application/` direct
   with:
     repository: tannenbaum-gmbh/codecompliance
     path: codecompliance
-    token: ${{ secrets.GITHUB_TOKEN }}
+    token: ${{ secrets.CODECOMPLIANCE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 ```
-Checks out the `tannenbaum-gmbh/codecompliance` repository containing compliance rules and the code-compliance custom agent.
+Checks out the `tannenbaum-gmbh/codecompliance` repository containing compliance rules and the code-compliance custom agent. Uses `CODECOMPLIANCE_ACCESS_TOKEN` if available (for private repos), otherwise falls back to `GITHUB_TOKEN` (for public repos).
 
 #### 3. Install GitHub Copilot CLI
 Installs GitHub CLI (if not present) and the GitHub Copilot CLI extension:
