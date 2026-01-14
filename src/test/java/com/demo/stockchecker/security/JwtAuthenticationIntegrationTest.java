@@ -58,16 +58,16 @@ class JwtAuthenticationIntegrationTest {
     }
 
     @Test
-    void accessProtectedResource_WithoutToken_ShouldReturn403() throws Exception {
+    void accessProtectedResource_WithoutToken_ShouldReturn401() throws Exception {
         mockMvc.perform(get("/api/stocks"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void accessProtectedResource_WithInvalidToken_ShouldReturn403() throws Exception {
+    void accessProtectedResource_WithInvalidToken_ShouldReturn401() throws Exception {
         mockMvc.perform(get("/api/stocks")
                         .header("Authorization", "Bearer invalid.token.here"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

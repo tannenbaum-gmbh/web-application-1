@@ -27,11 +27,20 @@ public class JwtUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtUtil.class);
 
-    @Value("${jwt.secret}")
-    private String secret;
+    private final SecretKey signingKey;
 
     @Value("${jwt.expiration}")
     private Long expiration;
+
+    /**
+     * Constructor that initializes the signing key.
+     * 
+     * @param secret JWT secret from configuration
+     */
+    public JwtUtil(@Value("${jwt.secret}") String secret) {
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        this.signingKey = Keys.hmacShaKeyFor(keyBytes);
+    }
 
     /**
      * Generates JWT token for a username.
@@ -60,7 +69,7 @@ public class JwtUtil {
                 .subject(subject)
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey())
+                .signWith(signingKey)
                 .compact();
     }
 
@@ -105,7 +114,7 @@ public class JwtUtil {
      */
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
-                .verifyWith(getSigningKey())
+                .verifyWith(signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
@@ -141,18 +150,8 @@ public class JwtUtil {
             
             return isValid;
         } catch (Exception e) {
-            logger.error("JWT token validation error: {}", e.getMessage());
+            logger.error("JWT token validation error", e);
             return false;
         }
-    }
-
-    /**
-     * Gets the signing key for JWT operations.
-     * 
-     * @return signing key
-     */
-    private SecretKey getSigningKey() {
-        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-        return Keys.hmacShaKeyFor(keyBytes);
     }
 }

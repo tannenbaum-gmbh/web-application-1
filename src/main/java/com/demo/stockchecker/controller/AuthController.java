@@ -38,8 +38,18 @@ public class AuthController {
 
     /**
      * Authenticates user and generates JWT token.
-     * This is a simplified authentication endpoint for demo purposes.
-     * In production, this would validate credentials against a user database.
+     * 
+     * WARNING: This is a simplified demo implementation that does NOT perform actual authentication.
+     * It generates a JWT token for ANY username without validating credentials.
+     * 
+     * SECURITY RISK: This implementation is INSECURE and MUST NOT be used in production.
+     * 
+     * For production use, you MUST:
+     * - Validate username and password against a secure user database
+     * - Use proper password hashing (e.g., BCrypt)
+     * - Implement rate limiting to prevent brute force attacks
+     * - Add account lockout mechanisms
+     * - Implement proper user authentication with Spring Security's AuthenticationManager
      * 
      * @param loginRequest login request containing username
      * @return ResponseEntity with JWT token
@@ -48,7 +58,8 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> login(@Valid @RequestBody LoginRequest loginRequest) {
         logger.info("POST /api/auth/login - Authenticating user: {}", loginRequest.getUsername());
         
-        // Generate JWT token
+        // WARNING: No actual authentication is performed here - this is for demo purposes only
+        // In production, validate credentials before generating token
         String token = jwtUtil.generateToken(loginRequest.getUsername());
         
         return ResponseEntity.ok(Map.of(

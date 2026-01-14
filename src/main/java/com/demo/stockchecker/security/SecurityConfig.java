@@ -23,20 +23,27 @@ public class SecurityConfig {
      * Configures security filter chain.
      * 
      * @param http HTTP security configuration
+     * @param jwtAuthenticationFilter JWT authentication filter
+     * @param jwtAuthenticationEntryPoint custom entry point for authentication errors
      * @return configured security filter chain
      * @throws Exception if configuration error occurs
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, 
+                                                  JwtAuthenticationFilter jwtAuthenticationFilter,
+                                                  JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint) throws Exception {
         http
             // CSRF protection is disabled for JWT-based authentication
             // JWT tokens are stateless and typically sent in Authorization headers (not cookies)
             // CSRF attacks primarily target cookie-based authentication
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/auth/login").permitAll()
                 .requestMatchers("/api/stocks/health").permitAll()
                 .anyRequest().authenticated()
+            )
+            .exceptionHandling(exception -> exception
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

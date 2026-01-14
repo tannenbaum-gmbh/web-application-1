@@ -196,7 +196,7 @@ curl -X POST http://localhost:8080/api/stocks \
 curl -X PUT http://localhost:8080/api/stocks/AAPL/price \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"currentPrice":155.00}'
+  -d '{"price":155.00}'
 
 # 6. Access public health endpoint (no token required)
 curl http://localhost:8080/api/stocks/health
