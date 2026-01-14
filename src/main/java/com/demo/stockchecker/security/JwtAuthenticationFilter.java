@@ -22,7 +22,6 @@ import java.util.ArrayList;
  * @author Demo Team
  * @version 1.0.0
  */
-@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
