@@ -36,22 +36,20 @@ Checks out the current repository with PR changes into `web-application/` direct
 Checks out the `tannenbaum-gmbh/codecompliance` repository containing compliance rules and the code-compliance custom agent. Uses `CODECOMPLIANCE_ACCESS_TOKEN` if available (for private repos), otherwise falls back to `GITHUB_TOKEN` (for public repos).
 
 #### 3. Install GitHub Copilot CLI
-Installs GitHub CLI (if not present) and the GitHub Copilot CLI extension:
-- Adds GitHub CLI repository
-- Installs `gh` package
-- Installs or upgrades `gh-copilot` extension
+Installs GitHub Copilot CLI using the official npm package:
+- Uses `npm install -g @githubnext/github-copilot-cli`
+- Requires `GITHUB_COPILOT_TOKEN` secret for authentication
+- See: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
 
 #### 4. Run Code Compliance Review
 Executes the code-compliance custom agent:
 - Changes to the `web-application/` directory
-- First checks for compliance check scripts in the codecompliance repository:
-  - `run-compliance-check.sh`
-  - `compliance-check.sh`
-- If no script found, attempts to run GitHub Copilot CLI with custom agent
-- The agent/script analyzes the code against compliance rules
+- Copies codecompliance repository content to the root folder
+- Invokes the custom agent with: `copilot --agent code-compliance --model claude-opus-4.5 -i "review my code and store the findings in a file called compliance-findings.md"`
+- The agent analyzes the code against compliance rules
 - Generates `compliance-findings.md` with analysis results
 
-If neither script nor agent generates the file, a placeholder is created with:
+If the agent doesn't generate the file, a placeholder is created with:
 - Review status
 - Repository and PR information
 - Basic compliance check confirmation
@@ -74,11 +72,12 @@ permissions:
 ```
 
 ### Environment Variables
-- `GITHUB_TOKEN`: Automatically provided by GitHub Actions
+- `GITHUB_TOKEN`: Automatically provided by GitHub Actions - Used for posting PR comments
+- `GITHUB_COPILOT_TOKEN`: Required secret for GitHub Copilot CLI authentication
 - Used for:
-  - Authenticating with GitHub CLI
-  - Accessing the codecompliance repository
-  - Posting PR comments
+  - Installing GitHub Copilot CLI
+  - Running the code-compliance custom agent
+  - Accessing the codecompliance repository (optional fallback)
 
 ### Prerequisites
 
@@ -88,14 +87,16 @@ permissions:
 3. Access to the `tannenbaum-gmbh/codecompliance` repository
    - If the codecompliance repository is **public**: Default `GITHUB_TOKEN` is sufficient
    - If the codecompliance repository is **private**: Add a repository secret named `CODECOMPLIANCE_ACCESS_TOKEN` containing a Personal Access Token (PAT) with `repo` scope
+4. **Required**: Add a repository secret named `GITHUB_COPILOT_TOKEN` containing a Personal Access Token (PAT) with Copilot access
 
 #### Code-Compliance Agent Requirements
 The `tannenbaum-gmbh/codecompliance` repository should contain:
 - Compliance rules and standards
-- GitHub Copilot CLI custom agent configuration
-- The agent should be configured to:
-  - Analyze code in the target repository
-  - Generate a `compliance-findings.md` file with results
+- GitHub Copilot CLI custom agent configuration (`.github/copilot/agents/code-compliance/` directory)
+- The agent configuration should specify:
+  - How to analyze code in the target repository
+  - Instructions to generate a `compliance-findings.md` file with results
+- When invoked with `copilot --agent code-compliance --model claude-opus-4.5`, the agent should review code and create findings file
 
 ### Expected Output
 

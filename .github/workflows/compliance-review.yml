@@ -30,23 +30,15 @@ jobs:
       
       - name: Install GitHub Copilot CLI
         run: |
-          # Install GitHub CLI if not already available
-          command -v gh > /dev/null 2>&1 || {
-            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-            sudo apt update
-            sudo apt install gh -y
-          }
-          
-          # Install GitHub Copilot CLI extension
-          gh extension install github/gh-copilot || gh extension upgrade github/gh-copilot
+          # Install GitHub Copilot CLI using official method
+          # https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
+          npm install -g @githubnext/github-copilot-cli
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_COPILOT_TOKEN }}
       
       - name: Run Code Compliance Review
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_COPILOT_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           HEAD_REF: ${{ github.head_ref }}
@@ -54,20 +46,14 @@ jobs:
         run: |
           cd web-application
           
-          # Check if codecompliance repository has a custom script
-          if [ -f ../codecompliance/run-compliance-check.sh ]; then
-            # Run the compliance check script from codecompliance repository
-            bash ../codecompliance/run-compliance-check.sh
-          elif [ -f ../codecompliance/compliance-check.sh ]; then
-            bash ../codecompliance/compliance-check.sh
-          else
-            # Fallback: attempt to invoke custom agent if configured
-            # Note: The exact command depends on how the code-compliance agent is set up
-            # This is a placeholder - adjust based on actual agent configuration
-            echo "No compliance script found. Ensure codecompliance repository contains:" >> compliance-findings.md
-            echo "- run-compliance-check.sh, or" >> compliance-findings.md
-            echo "- compliance-check.sh" >> compliance-findings.md
+          # Copy codecompliance content to root folder
+          if [ -d ../codecompliance ]; then
+            cp -r ../codecompliance/* .
+            cp -r ../codecompliance/.[^.]* . 2>/dev/null || true
           fi
+          
+          # Invoke the code-compliance custom agent
+          copilot --agent code-compliance --model claude-opus-4.5 -i "review my code and store the findings in a file called compliance-findings.md"
           
           # Create a placeholder if the file doesn't exist
           if [ ! -f compliance-findings.md ]; then
