@@ -20,12 +20,12 @@ jobs:
         cache: maven
         
     - name: Build and Test
+      id: build
       run: mvn clean install -B
       
-    - name: Package application
-      run: mvn package -DskipTests -B
-      
     - name: Simulated Azure Deployment
+      id: deploy
+      if: success()
       run: |
         echo "=========================================="
         echo "Simulated Azure Deployment"
@@ -37,7 +37,7 @@ jobs:
         echo "Deployment Steps:"
         echo "1. Validating Azure credentials... ✓"
         echo "2. Connecting to Azure App Service... ✓"
-        echo "3. Uploading application artifact... ✓"
+        echo "3. Uploading application artifact (target/*.jar)... ✓"
         echo "4. Configuring environment variables... ✓"
         echo "5. Starting application... ✓"
         echo "6. Running health checks... ✓"
@@ -49,12 +49,19 @@ jobs:
     - name: Report deployment status
       if: always()
       run: |
-        if [ "${{ job.status }}" == "success" ]; then
-          echo "✓ Release pipeline completed successfully"
-          echo "✓ Build: PASSED"
-          echo "✓ Tests: PASSED"
-          echo "✓ Deployment: SIMULATED (SUCCESS)"
+        echo "=========================================="
+        echo "Release Pipeline Summary"
+        echo "=========================================="
+        if [ "${{ steps.build.outcome }}" == "success" ]; then
+          echo "✓ Build and Test: PASSED"
         else
-          echo "✗ Release pipeline failed"
-          echo "Please check the logs above for details"
+          echo "✗ Build and Test: FAILED"
         fi
+        if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+          echo "✓ Azure Deployment: SIMULATED (SUCCESS)"
+        elif [ "${{ steps.deploy.outcome }}" == "skipped" ]; then
+          echo "⊘ Azure Deployment: SKIPPED (Build failed)"
+        else
+          echo "✗ Azure Deployment: FAILED"
+        fi
+        echo "=========================================="

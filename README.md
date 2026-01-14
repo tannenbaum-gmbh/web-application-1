@@ -183,10 +183,9 @@ The project includes an automated release pipeline that triggers on new GitHub r
 **Pipeline Steps**:
 1. **Checkout Code** - Retrieves the latest code from the repository
 2. **Set up Java 17** - Configures Java 17 environment with Temurin distribution
-3. **Build and Test** - Runs `mvn clean install -B` (builds and runs all tests)
-4. **Package Application** - Creates deployment artifact with `mvn package`
-5. **Simulated Azure Deployment** - Demonstrates deployment process to Azure App Service
-6. **Report Status** - Provides deployment summary and status
+3. **Build and Test** - Runs `mvn clean install -B` (compiles, tests, and packages the application)
+4. **Simulated Azure Deployment** - Demonstrates deployment process to Azure App Service
+5. **Report Status** - Provides deployment summary with individual step outcomes
 
 ### Creating a Release to Trigger the Pipeline
 
