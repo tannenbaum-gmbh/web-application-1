@@ -293,6 +293,8 @@ This repository includes a GitHub Actions workflow (`.github/workflows/complianc
 **Requirements**:
 - GitHub Actions enabled on the repository
 - Access to `tannenbaum-gmbh/codecompliance` repository
+  - For public repositories: Default `GITHUB_TOKEN` works
+  - For private repositories: Configure `CODECOMPLIANCE_ACCESS_TOKEN` secret with a PAT
 - GitHub Copilot CLI with code-compliance custom agent configured
 
 ---

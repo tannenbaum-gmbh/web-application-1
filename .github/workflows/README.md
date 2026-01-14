@@ -44,11 +44,14 @@ Installs GitHub CLI (if not present) and the GitHub Copilot CLI extension:
 #### 4. Run Code Compliance Review
 Executes the code-compliance custom agent:
 - Changes to the `web-application/` directory
-- Runs GitHub Copilot CLI with the code-compliance agent
-- The agent analyzes the code against compliance rules
+- First checks for compliance check scripts in the codecompliance repository:
+  - `run-compliance-check.sh`
+  - `compliance-check.sh`
+- If no script found, attempts to run GitHub Copilot CLI with custom agent
+- The agent/script analyzes the code against compliance rules
 - Generates `compliance-findings.md` with analysis results
 
-If the agent doesn't generate the file, a placeholder is created with:
+If neither script nor agent generates the file, a placeholder is created with:
 - Review status
 - Repository and PR information
 - Basic compliance check confirmation
@@ -83,6 +86,8 @@ permissions:
 1. GitHub Actions must be enabled on the repository
 2. The workflow file must be in `.github/workflows/` directory
 3. Access to the `tannenbaum-gmbh/codecompliance` repository
+   - If the codecompliance repository is **public**: Default `GITHUB_TOKEN` is sufficient
+   - If the codecompliance repository is **private**: Add a repository secret named `CODECOMPLIANCE_ACCESS_TOKEN` containing a Personal Access Token (PAT) with `repo` scope
 
 #### Code-Compliance Agent Requirements
 The `tannenbaum-gmbh/codecompliance` repository should contain:
@@ -127,9 +132,11 @@ The generated file should follow this structure:
 ```
 
 #### PR Comment Example
-The workflow posts findings as a comment on the PR:
-
-![PR Comment Example](https://via.placeholder.com/800x400?text=Compliance+Review+Comment)
+The workflow posts findings as a comment on the PR. The comment will include:
+- Compliance review status
+- Summary of findings
+- Detailed analysis results
+- Recommendations for improvements
 
 ### Troubleshooting
 

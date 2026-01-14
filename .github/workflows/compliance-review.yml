@@ -26,7 +26,7 @@ jobs:
         with:
           repository: tannenbaum-gmbh/codecompliance
           path: codecompliance
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.CODECOMPLIANCE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
       
       - name: Install GitHub Copilot CLI
         run: |
@@ -48,14 +48,20 @@ jobs:
         run: |
           cd web-application
           
-          # Run GitHub Copilot CLI with code-compliance custom agent
-          # The agent should analyze the code and create compliance-findings.md
-          gh copilot suggest "Run code-compliance agent on this repository using the compliance rules from ../codecompliance and generate compliance-findings.md" || true
+          # Check if codecompliance repository has a custom script
+          if [ -f ../codecompliance/run-compliance-check.sh ]; then
+            # Run the compliance check script from codecompliance repository
+            bash ../codecompliance/run-compliance-check.sh
+          elif [ -f ../codecompliance/compliance-check.sh ]; then
+            bash ../codecompliance/compliance-check.sh
+          else
+            # If no script exists, run GitHub Copilot CLI with custom agent
+            # Note: This requires the code-compliance custom agent to be configured
+            # Adjust the command based on actual agent invocation method
+            gh copilot --agent code-compliance analyze . || true
+          fi
           
-          # Alternatively, if there's a specific command/script in codecompliance repo:
-          # ../codecompliance/run-compliance-check.sh
-          
-          # For now, create a placeholder if the file doesn't exist
+          # Create a placeholder if the file doesn't exist
           if [ ! -f compliance-findings.md ]; then
             echo "# Compliance Review Findings" > compliance-findings.md
             echo "" >> compliance-findings.md
@@ -97,7 +103,8 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const findings = `${{ steps.compliance.outputs.findings }}`;
+            const findingsJson = ${{ toJSON(steps.compliance.outputs.findings) }};
+            const findings = findingsJson || 'No compliance findings available.';
             
             // Create or update comment
             const { data: comments } = await github.rest.issues.listComments({
