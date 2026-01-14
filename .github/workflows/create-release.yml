@@ -19,40 +19,40 @@ permissions:
 jobs:
   create-release:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Validate version tag format
         run: |
           if [[ ! "${{ inputs.version_tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version tag must follow semver format (e.g., v1.0.0)"
             exit 1
           fi
-      
+
       - name: Check if tag already exists
         run: |
           if git rev-parse "${{ inputs.version_tag }}" >/dev/null 2>&1; then
             echo "Error: Tag ${{ inputs.version_tag }} already exists"
             exit 1
           fi
-      
+
       - name: Create release branch
         run: |
           BRANCH_NAME="release/${{ inputs.version_tag }}"
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
           echo "Created and pushed branch: $BRANCH_NAME"
-      
+
       - name: Install GitHub Copilot CLI
         run: |
           # Install GitHub Copilot CLI using official method
           # https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
           npm install -g @github/copilot
-      
+
       - name: Get last release tag
         id: last_release
         run: |
@@ -63,7 +63,7 @@ jobs:
           fi
           echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
           echo "Last release: $LAST_TAG"
-      
+
       - name: Generate changes summary with GitHub Copilot CLI
         env:
           GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
@@ -76,38 +76,38 @@ jobs:
             COMMIT_RANGE="HEAD"
             echo "Analyzing all changes (no previous release)"
           fi
-          
+
           # Get the diff and commit messages
           git log --oneline $COMMIT_RANGE > commits.txt
           git diff $COMMIT_RANGE > changes.diff || git diff HEAD > changes.diff
-          
+
           # Create a prompt for Copilot CLI to analyze the changes
           cat > analysis_prompt.txt <<'EOF'
           Analyze the following git commits and changes for a release. Create a comprehensive release notes document that includes:
-          
+
           1. A brief summary of the release
           2. Key features and improvements
           3. Bug fixes
           4. Breaking changes (if any)
           5. Technical changes
-          
+
           Format the output in Markdown suitable for GitHub release notes.
-          
+
           Commits:
           EOF
-          
+
           cat commits.txt >> analysis_prompt.txt
-          
+
           echo "" >> analysis_prompt.txt
           echo "Diff summary:" >> analysis_prompt.txt
           git diff --stat $COMMIT_RANGE >> analysis_prompt.txt || git diff --stat HEAD >> analysis_prompt.txt
-          
+
           # Use Copilot CLI to generate release notes
           copilot -p "$(cat analysis_prompt.txt)" > release-notes.md || echo "# Release ${{ inputs.release_name }}\n\n## Changes\n\n$(cat commits.txt)" > release-notes.md
-          
+
           echo "Generated release notes:"
           cat release-notes.md
-      
+
       - name: Create release notes file
         run: |
           # Ensure release notes exist
@@ -116,17 +116,17 @@ jobs:
             echo "" >> release-notes.md
             echo "## Changes" >> release-notes.md
             echo "" >> release-notes.md
-            
+
             if [ "${{ steps.last_release.outputs.last_tag }}" != "" ]; then
               git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD >> release-notes.md
             else
               git log --oneline HEAD >> release-notes.md
             fi
           fi
-          
+
           echo "Final release notes:"
           cat release-notes.md
-      
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -136,7 +136,7 @@ jobs:
             --title "${{ inputs.release_name }}" \
             --notes-file release-notes.md \
             --target "release/${{ inputs.version_tag }}"
-          
+
           echo "=========================================="
           echo "Release Created Successfully!"
           echo "=========================================="
@@ -144,7 +144,7 @@ jobs:
           echo "Version Tag: ${{ inputs.version_tag }}"
           echo "Release Branch: release/${{ inputs.version_tag }}"
           echo "=========================================="
-      
+
       - name: Summary
         if: always()
         run: |
