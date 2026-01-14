@@ -29,6 +29,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
+            // CSRF protection is disabled for JWT-based authentication
+            // JWT tokens are stateless and typically sent in Authorization headers (not cookies)
+            // CSRF attacks primarily target cookie-based authentication
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
