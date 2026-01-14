@@ -51,25 +51,12 @@ jobs:
           fi
           
           # Invoke the code-compliance custom agent
-          /usr/local/bin/copilot --agent code-compliance --model claude-opus-4.5 -i "review my code and store the findings in a file called compliance-findings.md"
+          copilot --agent code-compliance --model claude-opus-4.5 -p "review my code and store the findings in a file called compliance-findings.md" --allow-all
           
           # Create a placeholder if the file doesn't exist
           if [ ! -f compliance-findings.md ]; then
-            echo "# Compliance Review Findings" > compliance-findings.md
-            echo "" >> compliance-findings.md
-            echo "**Status**: Compliance review completed" >> compliance-findings.md
-            echo "" >> compliance-findings.md
-            echo "## Summary" >> compliance-findings.md
-            echo "The code has been reviewed against the compliance rules from the codecompliance repository." >> compliance-findings.md
-            echo "" >> compliance-findings.md
-            echo "## Review Details" >> compliance-findings.md
-            echo "- Repository: $GITHUB_REPOSITORY" >> compliance-findings.md
-            echo "- PR Number: #$PR_NUMBER" >> compliance-findings.md
-            echo "- Branch: $HEAD_REF" >> compliance-findings.md
-            echo "- Commit: $HEAD_SHA" >> compliance-findings.md
-            echo "" >> compliance-findings.md
-            echo "## Findings" >> compliance-findings.md
-            echo "_Automated compliance check completed. Review the code changes against documented compliance standards._" >> compliance-findings.md
+            echo "code-compliance agent failed to create results."
+            exit -1
           fi
       
       - name: Read compliance findings
