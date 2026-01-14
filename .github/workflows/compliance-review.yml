@@ -53,7 +53,7 @@ jobs:
           fi
           
           # Invoke the code-compliance custom agent
-          copilot --agent code-compliance --model claude-opus-4.5 -i "review my code and store the findings in a file called compliance-findings.md"
+          /usr/local/bin/copilot --agent code-compliance --model claude-opus-4.5 -i "review my code and store the findings in a file called compliance-findings.md"
           
           # Create a placeholder if the file doesn't exist
           if [ ! -f compliance-findings.md ]; then
