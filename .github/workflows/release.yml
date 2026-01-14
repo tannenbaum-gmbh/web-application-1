@@ -19,11 +19,8 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
-    - name: Build with Maven
+    - name: Build and Test
       run: mvn clean install -B
-      
-    - name: Run tests
-      run: mvn test -B
       
     - name: Package application
       run: mvn package -DskipTests -B
@@ -52,7 +49,7 @@ jobs:
     - name: Report deployment status
       if: always()
       run: |
-        if [ ${{ job.status }} == 'success' ]; then
+        if [ "${{ job.status }}" == "success" ]; then
           echo "✓ Release pipeline completed successfully"
           echo "✓ Build: PASSED"
           echo "✓ Tests: PASSED"
