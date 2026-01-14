@@ -58,28 +58,29 @@ jobs:
         run: |
           LAST_TAG=$(git tag --sort=-version:refname | head -n 1)
           if [ -z "$LAST_TAG" ]; then
-            echo "No previous release found, comparing from first commit"
-            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+            echo "no_previous_release=true" >> $GITHUB_OUTPUT
+            echo "last_tag=" >> $GITHUB_OUTPUT
+            echo "No previous release found"
+          else
+            echo "no_previous_release=false" >> $GITHUB_OUTPUT
+            echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
+            echo "Last release: $LAST_TAG"
           fi
-          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
-          echo "Last release: $LAST_TAG"
 
       - name: Generate changes summary with GitHub Copilot CLI
         env:
           GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
         run: |
-          # Get commit log between last release and current HEAD
-          if [ "${{ steps.last_release.outputs.last_tag }}" != "" ]; then
-            COMMIT_RANGE="${{ steps.last_release.outputs.last_tag }}..HEAD"
-            echo "Analyzing changes from ${{ steps.last_release.outputs.last_tag }} to HEAD"
-          else
-            COMMIT_RANGE="HEAD"
+          # Get commit log and diff based on whether there's a previous release
+          if [ "${{ steps.last_release.outputs.no_previous_release }}" = "true" ]; then
             echo "Analyzing all changes (no previous release)"
+            git log --oneline > commits.txt
+            git diff --root HEAD > changes.diff
+          else
+            echo "Analyzing changes from ${{ steps.last_release.outputs.last_tag }} to HEAD"
+            git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD > commits.txt
+            git diff ${{ steps.last_release.outputs.last_tag }}..HEAD > changes.diff
           fi
-
-          # Get the diff and commit messages
-          git log --oneline $COMMIT_RANGE > commits.txt
-          git diff $COMMIT_RANGE > changes.diff || git diff HEAD > changes.diff
 
           # Create a prompt for Copilot CLI to analyze the changes
           cat > analysis_prompt.txt <<'EOF'
@@ -100,27 +101,37 @@ jobs:
 
           echo "" >> analysis_prompt.txt
           echo "Diff summary:" >> analysis_prompt.txt
-          git diff --stat $COMMIT_RANGE >> analysis_prompt.txt || git diff --stat HEAD >> analysis_prompt.txt
+          if [ "${{ steps.last_release.outputs.no_previous_release }}" = "true" ]; then
+            git diff --stat --root HEAD >> analysis_prompt.txt
+          else
+            git diff --stat ${{ steps.last_release.outputs.last_tag }}..HEAD >> analysis_prompt.txt
+          fi
 
           # Use Copilot CLI to generate release notes
-          copilot -p "$(cat analysis_prompt.txt)" > release-notes.md || echo "# Release ${{ inputs.release_name }}\n\n## Changes\n\n$(cat commits.txt)" > release-notes.md
+          if copilot -p "$(cat analysis_prompt.txt)" > release-notes.md 2>/dev/null; then
+            echo "Successfully generated release notes with Copilot CLI"
+          else
+            echo "Copilot CLI failed, using fallback"
+            printf "# Release %s\n\n## Changes\n\n%s\n" "${{ inputs.release_name }}" "$(cat commits.txt)" > release-notes.md
+          fi
 
           echo "Generated release notes:"
           cat release-notes.md
 
       - name: Create release notes file
         run: |
-          # Ensure release notes exist
+          # Ensure release notes exist (backup fallback)
           if [ ! -f release-notes.md ]; then
+            echo "Creating fallback release notes"
             echo "# ${{ inputs.release_name }}" > release-notes.md
             echo "" >> release-notes.md
             echo "## Changes" >> release-notes.md
             echo "" >> release-notes.md
 
-            if [ "${{ steps.last_release.outputs.last_tag }}" != "" ]; then
-              git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD >> release-notes.md
+            if [ "${{ steps.last_release.outputs.no_previous_release }}" = "true" ]; then
+              git log --oneline >> release-notes.md
             else
-              git log --oneline HEAD >> release-notes.md
+              git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD >> release-notes.md
             fi
           fi
 
