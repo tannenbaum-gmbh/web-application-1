@@ -173,6 +173,45 @@ curl -X PUT http://localhost:8080/api/stocks/AAPL/price \
 
 ## 🔄 CI/CD Pipeline
 
+### Create Release Workflow
+The project includes an automated workflow to create releases with AI-generated release notes.
+
+**Workflow**: `.github/workflows/create-release.yml`
+
+**Trigger**: Manual (workflow_dispatch)
+
+**Inputs**:
+- `release_name` - Release name (e.g., "Version 1.0.0")
+- `version_tag` - Version tag in semver format (e.g., "v1.0.0")
+
+**Pipeline Steps**:
+1. **Checkout Repository** - Retrieves the latest code with full history
+2. **Validate Version Tag** - Ensures tag follows semver format (vX.Y.Z)
+3. **Check Tag Existence** - Verifies the tag doesn't already exist
+4. **Create Release Branch** - Creates a branch with pattern `release/{version-tag}`
+5. **Install GitHub Copilot CLI** - Sets up Copilot CLI for AI-powered analysis
+6. **Get Last Release** - Identifies the previous release tag for comparison
+7. **Generate Release Notes** - Uses GitHub Copilot CLI to analyze changes and create comprehensive release notes
+8. **Create GitHub Release** - Creates the release with generated notes targeting the release branch
+
+**Triggering the Workflow**:
+
+Using GitHub CLI:
+```bash
+# Trigger the create release workflow
+gh workflow run create-release.yml -f release_name="Version 1.0.0" -f version_tag="v1.0.0"
+```
+
+Using GitHub Web Interface:
+1. Navigate to the repository on GitHub
+2. Click on "Actions" tab
+3. Select "Create Release" workflow
+4. Click "Run workflow"
+5. Enter release name and version tag
+6. Click "Run workflow" button
+
+The workflow will create a release branch, generate release notes using AI, and create the GitHub release, which then triggers the Release Pipeline below.
+
 ### Release Pipeline
 The project includes an automated release pipeline that triggers on new GitHub releases.
 
@@ -187,29 +226,19 @@ The project includes an automated release pipeline that triggers on new GitHub r
 4. **Simulated Azure Deployment** - Demonstrates deployment process to Azure App Service
 5. **Report Status** - Provides deployment summary with individual step outcomes
 
-### Creating a Release to Trigger the Pipeline
-
-Using GitHub CLI:
-```bash
-# Create a new release
-gh release create v1.0.0 --title "Release v1.0.0" --notes "Initial release"
-```
-
-Using GitHub Web Interface:
-1. Navigate to the repository on GitHub
-2. Click on "Releases" in the right sidebar
-3. Click "Draft a new release"
-4. Create a new tag (e.g., `v1.0.0`)
-5. Add release title and description
-6. Click "Publish release"
-
-The release pipeline will automatically start and you can monitor its progress in the "Actions" tab.
+The release pipeline will automatically start when a release is published and you can monitor its progress in the "Actions" tab.
 
 ### Monitoring Pipeline Execution
 
 View workflow runs:
 ```bash
-# List recent workflow runs
+# List all workflow runs
+gh run list
+
+# List runs for create-release workflow
+gh run list --workflow=create-release.yml
+
+# List runs for release pipeline
 gh run list --workflow=release.yml
 
 # View details of a specific run
