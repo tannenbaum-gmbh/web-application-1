@@ -57,6 +57,7 @@ This demo application is designed for customer workshops to demonstrate:
 ### Core Documents
 - **[README.md](README.md)** - This file, project overview and getting started guide
 - **[COMPLIANCE_RULES.md](COMPLIANCE_RULES.md)** - **Centralized compliance rules and coding standards** ✓
+- **[COMPLIANCE_CHECKING_GUIDE.md](COMPLIANCE_CHECKING_GUIDE.md)** - **Guide for compliance checking with code review agent** ✓
 - **[PROJECT_PLAN.md](PROJECT_PLAN.md)** - Detailed implementation plan with 6 phases and 25+ tasks
 - **[ARCHITECTURE_OVERVIEW.md](ARCHITECTURE_OVERVIEW.md)** - Comprehensive architecture and design guide
 - **[COMPLIANCE_GUIDE.md](COMPLIANCE_GUIDE.md)** - Best practices for compliance documentation
@@ -396,6 +397,8 @@ This project is licensed under the terms specified in the LICENSE file.
 
 ## 🎯 Quick Links
 
+- [**Compliance Rules**](COMPLIANCE_RULES.md) - Single source of truth for all compliance requirements
+- [**Compliance Checking Guide**](COMPLIANCE_CHECKING_GUIDE.md) - How code review validates against compliance
 - [Detailed Implementation Plan](PROJECT_PLAN.md)
 - [Architecture & Design Guide](ARCHITECTURE_OVERVIEW.md)
 - [Compliance Documentation Guide](COMPLIANCE_GUIDE.md)
