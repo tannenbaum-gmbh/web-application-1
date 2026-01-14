@@ -270,6 +270,31 @@ The code review agent accesses the centralized **COMPLIANCE_RULES.md** to:
    - Recommended fixes with examples
 5. Developer addresses feedback and resubmits
 
+### Automated Compliance Review Workflow
+This repository includes a GitHub Actions workflow (`.github/workflows/compliance-review.yml`) that automatically runs on every pull request:
+
+**Workflow Steps**:
+1. **Trigger**: Activates on PR events (opened, synchronize, reopened)
+2. **Checkout Repositories**: 
+   - Current repository with PR changes
+   - `tannenbaum-gmbh/codecompliance` repository with compliance rules
+3. **Install GitHub Copilot CLI**: Sets up the CLI and Copilot extension
+4. **Run Compliance Check**: Executes the code-compliance custom agent
+5. **Generate Findings**: Creates `compliance-findings.md` with analysis results
+6. **Post PR Comment**: Automatically adds findings as a comment on the PR
+
+**Benefits**:
+- ✅ Automated compliance validation on every PR
+- ✅ Consistent enforcement of compliance standards
+- ✅ Immediate feedback to developers
+- ✅ Centralized compliance rules from dedicated repository
+- ✅ Audit trail of all compliance checks
+
+**Requirements**:
+- GitHub Actions enabled on the repository
+- Access to `tannenbaum-gmbh/codecompliance` repository
+- GitHub Copilot CLI with code-compliance custom agent configured
+
 ---
 
 ## 🎓 Learning Objectives
