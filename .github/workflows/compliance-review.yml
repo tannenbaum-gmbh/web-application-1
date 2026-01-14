@@ -34,7 +34,7 @@ jobs:
           # https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
           npm install -g @githubnext/github-copilot-cli
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_COPILOT_TOKEN }}
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       
       - name: Run Code Compliance Review
         env:
