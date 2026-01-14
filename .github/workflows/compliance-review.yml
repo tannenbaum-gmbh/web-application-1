@@ -31,7 +31,7 @@ jobs:
       - name: Install GitHub Copilot CLI
         run: |
           # Install GitHub CLI if not already available
-          command -v gh > /dev/null || {
+          command -v gh > /dev/null 2>&1 || {
             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
             sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
@@ -45,6 +45,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Run Code Compliance Review
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           cd web-application
           
@@ -73,16 +79,14 @@ jobs:
             echo "The code has been reviewed against the compliance rules from the codecompliance repository." >> compliance-findings.md
             echo "" >> compliance-findings.md
             echo "## Review Details" >> compliance-findings.md
-            echo "- Repository: ${{ github.repository }}" >> compliance-findings.md
-            echo "- PR Number: #${{ github.event.pull_request.number }}" >> compliance-findings.md
-            echo "- Branch: ${{ github.head_ref }}" >> compliance-findings.md
-            echo "- Commit: ${{ github.event.pull_request.head.sha }}" >> compliance-findings.md
+            echo "- Repository: $GITHUB_REPOSITORY" >> compliance-findings.md
+            echo "- PR Number: #$PR_NUMBER" >> compliance-findings.md
+            echo "- Branch: $HEAD_REF" >> compliance-findings.md
+            echo "- Commit: $HEAD_SHA" >> compliance-findings.md
             echo "" >> compliance-findings.md
             echo "## Findings" >> compliance-findings.md
             echo "_Automated compliance check completed. Review the code changes against documented compliance standards._" >> compliance-findings.md
           fi
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Read compliance findings
         id: compliance
