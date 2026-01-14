@@ -40,7 +40,7 @@ class JwtUtilTest {
         // Assert
         assertNotNull(token);
         assertFalse(token.isEmpty());
-        assertTrue(token.split("\\.").length == 3); // JWT has 3 parts separated by dots
+        assertEquals(3, token.split("\\.").length); // JWT has 3 parts separated by dots
     }
 
     @Test
