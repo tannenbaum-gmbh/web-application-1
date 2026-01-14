@@ -28,21 +28,24 @@ jobs:
 
       - name: Validate version tag format
         run: |
-          if [[ ! "${{ inputs.version_tag }}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          VERSION_TAG="${{ inputs.version_tag }}"
+          if [[ ! "$VERSION_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version tag must follow semver format (e.g., v1.0.0)"
             exit 1
           fi
 
       - name: Check if tag already exists
         run: |
-          if git rev-parse "${{ inputs.version_tag }}" >/dev/null 2>&1; then
-            echo "Error: Tag ${{ inputs.version_tag }} already exists"
+          VERSION_TAG="${{ inputs.version_tag }}"
+          if git rev-parse "$VERSION_TAG" >/dev/null 2>&1; then
+            echo "Error: Tag $VERSION_TAG already exists"
             exit 1
           fi
 
       - name: Create release branch
         run: |
-          BRANCH_NAME="release/${{ inputs.version_tag }}"
+          VERSION_TAG="${{ inputs.version_tag }}"
+          BRANCH_NAME="release/$VERSION_TAG"
           git checkout -b "$BRANCH_NAME"
           git push origin "$BRANCH_NAME"
           echo "Created and pushed branch: $BRANCH_NAME"
@@ -77,9 +80,10 @@ jobs:
             git log --oneline > commits.txt
             git diff --root HEAD > changes.diff
           else
-            echo "Analyzing changes from ${{ steps.last_release.outputs.last_tag }} to HEAD"
-            git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD > commits.txt
-            git diff ${{ steps.last_release.outputs.last_tag }}..HEAD > changes.diff
+            LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
+            echo "Analyzing changes from $LAST_TAG to HEAD"
+            git log --oneline "$LAST_TAG..HEAD" > commits.txt
+            git diff "$LAST_TAG..HEAD" > changes.diff
           fi
 
           # Create a prompt for Copilot CLI to analyze the changes
@@ -104,7 +108,8 @@ jobs:
           if [ "${{ steps.last_release.outputs.no_previous_release }}" = "true" ]; then
             git diff --stat --root HEAD >> analysis_prompt.txt
           else
-            git diff --stat ${{ steps.last_release.outputs.last_tag }}..HEAD >> analysis_prompt.txt
+            LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
+            git diff --stat "$LAST_TAG..HEAD" >> analysis_prompt.txt
           fi
 
           # Use Copilot CLI to generate release notes
@@ -112,7 +117,9 @@ jobs:
             echo "Successfully generated release notes with Copilot CLI"
           else
             echo "Copilot CLI failed, using fallback"
-            printf "# Release %s\n\n## Changes\n\n%s\n" "${{ inputs.release_name }}" "$(cat commits.txt)" > release-notes.md
+            RELEASE_NAME="${{ inputs.release_name }}"
+            printf "# Release %s\n\n## Changes\n\n" "$RELEASE_NAME" > release-notes.md
+            cat commits.txt >> release-notes.md
           fi
 
           echo "Generated release notes:"
@@ -123,15 +130,14 @@ jobs:
           # Ensure release notes exist (backup fallback)
           if [ ! -f release-notes.md ]; then
             echo "Creating fallback release notes"
-            echo "# ${{ inputs.release_name }}" > release-notes.md
-            echo "" >> release-notes.md
-            echo "## Changes" >> release-notes.md
-            echo "" >> release-notes.md
+            RELEASE_NAME="${{ inputs.release_name }}"
+            printf "# %s\n\n## Changes\n\n" "$RELEASE_NAME" > release-notes.md
 
             if [ "${{ steps.last_release.outputs.no_previous_release }}" = "true" ]; then
               git log --oneline >> release-notes.md
             else
-              git log --oneline ${{ steps.last_release.outputs.last_tag }}..HEAD >> release-notes.md
+              LAST_TAG="${{ steps.last_release.outputs.last_tag }}"
+              git log --oneline "$LAST_TAG..HEAD" >> release-notes.md
             fi
           fi
 
@@ -142,18 +148,22 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          VERSION_TAG="${{ inputs.version_tag }}"
+          RELEASE_NAME="${{ inputs.release_name }}"
+          BRANCH_NAME="release/$VERSION_TAG"
+
           # Create the release using GitHub CLI
-          gh release create "${{ inputs.version_tag }}" \
-            --title "${{ inputs.release_name }}" \
+          gh release create "$VERSION_TAG" \
+            --title "$RELEASE_NAME" \
             --notes-file release-notes.md \
-            --target "release/${{ inputs.version_tag }}"
+            --target "$BRANCH_NAME"
 
           echo "=========================================="
           echo "Release Created Successfully!"
           echo "=========================================="
-          echo "Release Name: ${{ inputs.release_name }}"
-          echo "Version Tag: ${{ inputs.version_tag }}"
-          echo "Release Branch: release/${{ inputs.version_tag }}"
+          echo "Release Name: $RELEASE_NAME"
+          echo "Version Tag: $VERSION_TAG"
+          echo "Release Branch: $BRANCH_NAME"
           echo "=========================================="
 
       - name: Summary
