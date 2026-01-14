@@ -1,5 +1,300 @@
 # GitHub Actions Workflows
 
+## Create Release Workflow
+
+### Overview
+The **Create Release Workflow** (`create-release.yml`) automates the process of creating GitHub releases with AI-generated release notes. This workflow is manually triggered and creates a release branch, analyzes changes since the last release using GitHub Copilot CLI, and publishes a new release.
+
+### Trigger Events
+The workflow is triggered manually via `workflow_dispatch` with required inputs:
+- `release_name` - Human-readable name for the release (e.g., "Version 1.0.0")
+- `version_tag` - Semver-formatted version tag (e.g., "v1.0.0")
+
+### Workflow Steps
+
+#### 1. Checkout Repository
+```yaml
+- name: Checkout repository
+  uses: actions/checkout@v4
+  with:
+    fetch-depth: 0
+```
+Checks out the repository with full history (required for comparing with previous releases).
+
+#### 2. Validate Version Tag Format
+Ensures the version tag follows semantic versioning (vX.Y.Z):
+- Pattern: `^v[0-9]+\.[0-9]+\.[0-9]+$`
+- Example valid tags: v1.0.0, v2.1.3, v10.20.30
+- Exits with error if format is invalid
+
+#### 3. Check if Tag Already Exists
+Verifies the tag doesn't already exist in the repository to prevent duplicates.
+
+#### 4. Create Release Branch
+Creates and pushes a new branch with pattern `release/{version-tag}`:
+- Example: `release/v1.0.0`
+- This branch will be the target for the release
+
+#### 5. Install GitHub Copilot CLI
+Installs GitHub Copilot CLI using the official npm package:
+- Uses `npm install -g @github/copilot`
+- See: https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
+
+#### 6. Get Last Release Tag
+Identifies the previous release tag for comparison:
+- Uses `git tag --sort=-version:refname` to find the latest tag
+- If no previous release exists, analyzes all commits from the beginning
+
+#### 7. Generate Changes Summary with GitHub Copilot CLI
+Uses AI to analyze changes and create comprehensive release notes:
+- Extracts commit log between last release and current HEAD
+- Generates diff statistics
+- Creates a prompt asking Copilot CLI to analyze:
+  1. Brief summary of the release
+  2. Key features and improvements
+  3. Bug fixes
+  4. Breaking changes (if any)
+  5. Technical changes
+- Produces markdown-formatted release notes
+- Falls back to basic commit log if Copilot CLI fails
+
+#### 8. Create Release Notes File
+Ensures release notes exist with a final fallback mechanism in case previous steps failed.
+
+#### 9. Create GitHub Release
+Creates the release using GitHub CLI:
+- Tag: User-specified version tag
+- Title: User-specified release name
+- Body: AI-generated release notes
+- Target: The created release branch
+
+#### 10. Summary
+Displays workflow execution summary with release details.
+
+### Permissions Required
+```yaml
+permissions:
+  contents: write       # Create branches, tags, and releases
+  pull-requests: read   # Read PR information (if needed)
+```
+
+### Environment Variables and Secrets
+- `COPILOT_GITHUB_TOKEN`: Required secret for GitHub Copilot CLI authentication
+  - Used for generating AI-powered release notes
+  - Must be a Personal Access Token (PAT) with Copilot access
+- `GITHUB_TOKEN`: Automatically provided by GitHub Actions
+  - Used for creating the release
+
+### Prerequisites
+
+#### Repository Requirements
+1. GitHub Actions must be enabled on the repository
+2. The workflow file must be in `.github/workflows/` directory
+3. **Required**: Add a repository secret named `COPILOT_GITHUB_TOKEN` containing a Personal Access Token (PAT) with Copilot access
+
+#### Version Tag Format
+Tags must follow semantic versioning:
+- Format: `vMAJOR.MINOR.PATCH`
+- Examples: v1.0.0, v2.3.1, v10.0.0
+- Invalid: 1.0.0 (missing 'v'), v1.0 (missing patch), v1.0.0-beta (no pre-release)
+
+### Triggering the Workflow
+
+#### Using GitHub CLI
+```bash
+# Basic usage
+gh workflow run create-release.yml -f release_name="Version 1.0.0" -f version_tag="v1.0.0"
+
+# With more descriptive name
+gh workflow run create-release.yml \
+  -f release_name="Version 1.0.0 - Major Release" \
+  -f version_tag="v1.0.0"
+```
+
+#### Using GitHub Web Interface
+1. Navigate to your repository on GitHub
+2. Click on the "Actions" tab
+3. Select "Create Release" workflow from the left sidebar
+4. Click "Run workflow" button
+5. Fill in the required inputs:
+   - Release name: e.g., "Version 1.0.0"
+   - Version tag: e.g., "v1.0.0"
+6. Click "Run workflow" to start
+
+### Expected Output
+
+#### Release Branch
+A new branch will be created with the pattern:
+```
+release/v1.0.0
+release/v2.1.0
+```
+
+#### Release Notes Format
+AI-generated release notes will include:
+```markdown
+# Release Version 1.0.0
+
+## Summary
+[AI-generated summary of the release]
+
+## Key Features and Improvements
+- Feature 1
+- Feature 2
+
+## Bug Fixes
+- Fix 1
+- Fix 2
+
+## Breaking Changes
+- Breaking change 1 (if any)
+
+## Technical Changes
+- Technical change 1
+- Technical change 2
+```
+
+#### GitHub Release
+A published release with:
+- Tag: v1.0.0
+- Title: Version 1.0.0
+- Body: AI-generated release notes
+- Target: release/v1.0.0 branch
+
+### Triggered Workflows
+
+After creating the release, the **Release Pipeline** workflow (`release.yml`) will automatically trigger to:
+- Build and test the application
+- Deploy to Azure (simulated)
+- Report deployment status
+
+### Troubleshooting
+
+#### Workflow Not Available
+- Verify the workflow file exists in `.github/workflows/` directory
+- Check that GitHub Actions is enabled for the repository
+- Ensure you have permission to trigger workflows
+
+#### Version Tag Validation Fails
+- Ensure tag follows format: `vX.Y.Z` (e.g., v1.0.0)
+- Check for typos (common: missing 'v' prefix)
+- Verify using only numbers and dots
+
+#### Tag Already Exists Error
+- Check existing tags: `git tag -l`
+- Choose a different version number
+- Delete existing tag if needed: `git tag -d v1.0.0 && git push origin :refs/tags/v1.0.0`
+
+#### Branch Creation Fails
+- Verify repository permissions
+- Check if branch already exists
+- Ensure GITHUB_TOKEN has write permissions
+
+#### Copilot CLI Installation Fails
+- Check runner has internet access
+- Verify npm registry is accessible
+- Review installation logs for specific errors
+
+#### Release Notes Not Generated
+- Check `COPILOT_GITHUB_TOKEN` secret is configured
+- Verify token has Copilot access
+- Review Copilot CLI execution logs
+- Workflow will use fallback (basic commit log) if Copilot fails
+
+#### Release Creation Fails
+- Verify `contents: write` permission is set
+- Check `GITHUB_TOKEN` is valid
+- Ensure tag doesn't already exist
+- Verify release branch exists
+
+### Customization
+
+#### Modify Version Tag Pattern
+To support different versioning schemes:
+```yaml
+- name: Validate version tag format
+  run: |
+    VERSION_TAG="${{ inputs.version_tag }}"
+    # Example: Allow pre-release tags
+    if [[ ! "$VERSION_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-z0-9]+)?$ ]]; then
+      echo "Error: Invalid version tag format"
+      exit 1
+    fi
+```
+
+#### Customize Release Notes Prompt
+Modify the prompt in the "Generate changes summary" step:
+```yaml
+cat > analysis_prompt.txt <<'EOF'
+Analyze the following changes and create release notes focusing on:
+1. User-facing changes
+2. Performance improvements
+3. Security updates
+Format as a bullet list suitable for non-technical users.
+Commits:
+EOF
+```
+
+#### Add Additional Release Assets
+Extend the "Create GitHub Release" step:
+```yaml
+gh release create "$VERSION_TAG" \
+  --title "$RELEASE_NAME" \
+  --notes-file release-notes.md \
+  --target "$BRANCH_NAME" \
+  target/*.jar \
+  docs/*.pdf
+```
+
+### Integration with CI/CD
+
+This workflow integrates with the release pipeline:
+1. **Create Release Workflow** (manual) → Creates release
+2. **Release Pipeline** (automatic) → Triggered by release creation
+   - Builds application
+   - Runs tests
+   - Deploys to Azure
+
+### Best Practices
+
+1. **Semantic Versioning**: Follow semver principles (MAJOR.MINOR.PATCH)
+   - MAJOR: Breaking changes
+   - MINOR: New features (backward compatible)
+   - PATCH: Bug fixes (backward compatible)
+
+2. **Release Naming**: Use consistent naming conventions
+   - Good: "Version 1.0.0", "Release 2.1.0", "v3.0.0"
+   - Avoid: "New release", "Latest", "Bob's changes"
+
+3. **Timing**: Create releases at stable points
+   - After successful testing
+   - At end of sprint/milestone
+   - When features are complete
+
+4. **Review Release Notes**: Check AI-generated notes before publishing
+   - Verify accuracy
+   - Add important context if needed
+   - Update manually in GitHub if necessary
+
+5. **Branch Management**: Keep release branches
+   - Useful for hotfixes
+   - Enable patch releases
+   - Maintain release history
+
+### Support and Documentation
+
+- **Main README**: [README.md](../../README.md)
+- **GitHub Actions Docs**: https://docs.github.com/en/actions
+- **Semantic Versioning**: https://semver.org/
+
+### Version History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-01-14 | Initial workflow implementation |
+
+---
+
 ## Compliance Review Workflow
 
 ### Overview
