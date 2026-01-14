@@ -1,0 +1,117 @@
+name: Compliance Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  compliance-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout current repository
+        uses: actions/checkout@v4
+        with:
+          path: web-application
+      
+      - name: Checkout codecompliance repository
+        uses: actions/checkout@v4
+        with:
+          repository: tannenbaum-gmbh/codecompliance
+          path: codecompliance
+          token: ${{ secrets.CODECOMPLIANCE_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+      
+      - name: Install GitHub Copilot CLI
+        run: |
+          # Install GitHub Copilot CLI using official method
+          # https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
+          npm install -g @github/copilot
+      
+      - name: Run Code Compliance Review
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN}}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          cd web-application
+          
+          # Copy codecompliance content to root folder
+          if [ -d ../codecompliance ]; then
+            cp -r ../codecompliance/* .
+            cp -r ../codecompliance/.[^.]* . 2>/dev/null || true
+          fi
+          
+          # Invoke the code-compliance custom agent
+          copilot --agent code-compliance --model claude-opus-4.5 -p "review my code and store the findings in a file called compliance-findings.md" --allow-all
+          
+          # Create a placeholder if the file doesn't exist
+          if [ ! -f compliance-findings.md ]; then
+            echo "code-compliance agent failed to create results."
+            exit -1
+          fi
+      
+      - name: Read compliance findings
+        id: compliance
+        run: |
+          cd web-application
+          if [ -f compliance-findings.md ]; then
+            # Read the compliance findings file and prepare for PR comment
+            FINDINGS=$(cat compliance-findings.md)
+            
+            # Use heredoc to handle multiline content properly
+            echo "findings<<EOF" >> $GITHUB_OUTPUT
+            echo "$FINDINGS" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "findings=No compliance findings file generated." >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Post compliance findings as PR comment
+        uses: actions/github-script@v7
+        env:
+          FINDINGS: ${{ steps.compliance.outputs.findings }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const findings = process.env.FINDINGS || 'No compliance findings available.';
+            
+            // Create or update comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('# Compliance Review Findings')
+            );
+            
+            const commentBody = findings;
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }
