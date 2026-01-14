@@ -31,7 +31,7 @@ jobs:
       - name: Install GitHub Copilot CLI
         run: |
           # Install GitHub CLI if not already available
-          type -p gh > /dev/null || {
+          command -v gh > /dev/null || {
             curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
             sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
@@ -55,10 +55,12 @@ jobs:
           elif [ -f ../codecompliance/compliance-check.sh ]; then
             bash ../codecompliance/compliance-check.sh
           else
-            # If no script exists, run GitHub Copilot CLI with custom agent
-            # Note: This requires the code-compliance custom agent to be configured
-            # Adjust the command based on actual agent invocation method
-            gh copilot --agent code-compliance analyze . || true
+            # Fallback: attempt to invoke custom agent if configured
+            # Note: The exact command depends on how the code-compliance agent is set up
+            # This is a placeholder - adjust based on actual agent configuration
+            echo "No compliance script found. Ensure codecompliance repository contains:" >> compliance-findings.md
+            echo "- run-compliance-check.sh, or" >> compliance-findings.md
+            echo "- compliance-check.sh" >> compliance-findings.md
           fi
           
           # Create a placeholder if the file doesn't exist
@@ -100,11 +102,12 @@ jobs:
       
       - name: Post compliance findings as PR comment
         uses: actions/github-script@v7
+        env:
+          FINDINGS: ${{ steps.compliance.outputs.findings }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const findingsJson = ${{ toJSON(steps.compliance.outputs.findings) }};
-            const findings = findingsJson || 'No compliance findings available.';
+            const findings = process.env.FINDINGS || 'No compliance findings available.';
             
             // Create or update comment
             const { data: comments } = await github.rest.issues.listComments({
