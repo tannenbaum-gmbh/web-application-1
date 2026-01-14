@@ -32,7 +32,7 @@ jobs:
         run: |
           # Install GitHub Copilot CLI using official method
           # https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli
-          npm install -g @githubnext/github-copilot-cli
+          npm install -g @github/copilot
         env:
           GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
       
