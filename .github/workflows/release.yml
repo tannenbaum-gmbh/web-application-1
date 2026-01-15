@@ -9,7 +9,7 @@ permissions:
       
 jobs:
   build-and-deploy:
-    uses: tannenbaum-gmbh/java-platform-deployment/.github/workflows/java-platform-deployment.yml@v0.0.1
+    uses: tannenbaum-gmbh/java-platform-deployment/.github/workflows/deployment.yml@v0.0.1
     with:
       release_tag_name: ${{ github.event.release.tag_name }}
       release_name: ${{ github.event.release.name }}
