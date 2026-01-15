@@ -4,68 +4,13 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: read
+      
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.release.tag_name }}
-      
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        java-version: '17'
-        distribution: 'temurin'
-        cache: maven
-        
-    - name: Build and Test
-      id: build
-      run: mvn clean install -B
-      
-    - name: Simulated Azure Deployment
-      id: deploy
-      if: success()
-      run: |
-        echo "=========================================="
-        echo "Simulated Azure Deployment"
-        echo "=========================================="
-        echo "Release Tag: ${{ github.event.release.tag_name }}"
-        echo "Release Name: ${{ github.event.release.name }}"
-        echo "Release URL: ${{ github.event.release.html_url }}"
-        echo ""
-        echo "Deployment Steps:"
-        echo "1. Validating Azure credentials... ✓"
-        echo "2. Connecting to Azure App Service... ✓"
-        echo "3. Uploading application artifact (target/*.jar)... ✓"
-        echo "4. Configuring environment variables... ✓"
-        echo "5. Starting application... ✓"
-        echo "6. Running health checks... ✓"
-        echo ""
-        echo "Deployment completed successfully!"
-        echo "Application URL: https://stock-checker-demo.azurewebsites.net"
-        echo "=========================================="
-        
-    - name: Report deployment status
-      if: always()
-      run: |
-        echo "=========================================="
-        echo "Release Pipeline Summary"
-        echo "=========================================="
-        if [ "${{ steps.build.outcome }}" == "success" ]; then
-          echo "✓ Build and Test: PASSED"
-        else
-          echo "✗ Build and Test: FAILED"
-        fi
-        if [ "${{ steps.deploy.outcome }}" == "success" ]; then
-          echo "✓ Azure Deployment: SIMULATED (SUCCESS)"
-        elif [ "${{ steps.deploy.outcome }}" == "skipped" ]; then
-          echo "⊘ Azure Deployment: SKIPPED (Build failed)"
-        else
-          echo "✗ Azure Deployment: FAILED"
-        fi
-        echo "=========================================="
+    uses: tannenbaum-gmbh/java-platform-deployment/.github/workflows/deployment.yml@v0.0.1
+    with:
+      release_tag_name: ${{ github.event.release.tag_name }}
+      release_name: ${{ github.event.release.name }}
+      release_html_url: ${{ github.event.release.html_url }}
