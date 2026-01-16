@@ -138,36 +138,75 @@ All 31 tests should pass:
 - StockCheckerApplicationTests: 1 test
 - StockServiceImplTest: 17 tests  
 - StockControllerTest: 13 tests
+- AuthControllerTest: 3 tests
+- JwtAuthenticationIntegrationTest: 5 tests
+
+### Authentication
+The application uses JWT (JSON Web Token) for authentication. All `/api/stocks/**` endpoints (except `/api/stocks/health`) require a valid JWT token.
+
+#### Get JWT Token
+```bash
+# Login to get JWT token
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser"}'
+
+# Response:
+# {
+#   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+#   "type": "Bearer",
+#   "username": "testuser"
+# }
+```
 
 ### API Endpoints
 ```
-GET    /api/stocks              → List all stocks
-GET    /api/stocks/{symbol}     → Get specific stock quote
-POST   /api/stocks              → Create new stock
-PUT    /api/stocks/{symbol}     → Update stock
-PUT    /api/stocks/{symbol}/price → Update stock price
-DELETE /api/stocks/{symbol}     → Delete stock
-HEAD   /api/stocks/{symbol}     → Check if stock exists
+POST   /api/auth/login          → Generate JWT token (public)
+GET    /api/stocks/health       → Health check (public)
+GET    /api/stocks              → List all stocks (requires JWT)
+GET    /api/stocks/{symbol}     → Get specific stock quote (requires JWT)
+POST   /api/stocks              → Create new stock (requires JWT)
+PUT    /api/stocks/{symbol}     → Update stock (requires JWT)
+PUT    /api/stocks/{symbol}/price → Update stock price (requires JWT)
+DELETE /api/stocks/{symbol}     → Delete stock (requires JWT)
 ```
 
-### Sample Request
+### Sample Requests with JWT
 ```bash
-# Get all stocks
-curl http://localhost:8080/api/stocks
+# 1. Get JWT token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"demo"}' | jq -r '.token')
 
-# Get specific stock
-curl http://localhost:8080/api/stocks/AAPL
+# 2. Access protected endpoint with token
+curl http://localhost:8080/api/stocks \
+  -H "Authorization: Bearer $TOKEN"
 
-# Create new stock
+# 3. Get specific stock
+curl http://localhost:8080/api/stocks/AAPL \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Create new stock
 curl -X POST http://localhost:8080/api/stocks \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"symbol":"NVDA","name":"NVIDIA Corporation","currentPrice":500.00,"change":5.00,"changePercent":1.0}'
 
-# Update stock price
+# 5. Update stock price
 curl -X PUT http://localhost:8080/api/stocks/AAPL/price \
+  -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"currentPrice":155.00}'
+  -d '{"price":155.00}'
+
+# 6. Access public health endpoint (no token required)
+curl http://localhost:8080/api/stocks/health
 ```
+
+### JWT Configuration
+- **Token Expiration**: 24 hours (86400000 ms)
+- **Algorithm**: HMAC-SHA with secret key
+- **Session**: Stateless (no server-side session storage)
+- **Note**: For production, externalize the JWT secret using environment variables
 
 ---
 
