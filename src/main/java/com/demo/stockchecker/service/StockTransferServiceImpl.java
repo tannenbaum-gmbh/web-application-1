@@ -146,7 +146,6 @@ public class StockTransferServiceImpl implements StockTransferService {
         
         StockTransferRequest transfer = getTransferRequestById(transferId);
         transfer.setStatus(status);
-        transfer.setLastUpdated(LocalDateTime.now());
         
         StockTransferRequest updatedTransfer = stockTransferRepository.save(transfer);
         logger.info("Updated transfer: {} to status: {}", transferId, status);
