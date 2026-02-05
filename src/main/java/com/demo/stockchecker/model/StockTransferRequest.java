@@ -130,6 +130,13 @@ public class StockTransferRequest {
         return lastUpdated;
     }
 
+    /**
+     * Sets the last updated timestamp.
+     * This method is package-private to prevent external misuse.
+     * The lastUpdated field should be managed internally through setStatus method.
+     * 
+     * @param lastUpdated the last updated timestamp
+     */
     void setLastUpdated(LocalDateTime lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
