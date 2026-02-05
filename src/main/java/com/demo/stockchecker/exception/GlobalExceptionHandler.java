@@ -47,6 +47,29 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles StockTransferNotFoundException.
+     * 
+     * @param ex the exception
+     * @param request the web request
+     * @return error response with 404 status
+     */
+    @ExceptionHandler(StockTransferNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ResponseEntity<ErrorResponse> handleStockTransferNotFoundException(
+            StockTransferNotFoundException ex, WebRequest request) {
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+            LocalDateTime.now(),
+            HttpStatus.NOT_FOUND.value(),
+            HttpStatus.NOT_FOUND.getReasonPhrase(),
+            ex.getMessage(),
+            request.getDescription(false).replace("uri=", "")
+        );
+        
+        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    /**
      * Handles validation errors from @Valid annotations.
      * 
      * @param ex the exception
