@@ -9,7 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -28,11 +30,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * Integration tests for StockController.
  * Uses MockMvc to test REST endpoints without starting the full server.
- * 
+ *
  * @author Demo Team
  * @version 1.0.0
  */
 @WebMvcTest(StockController.class)
+@Import(TestSecurityConfig.class)
 class StockControllerTest {
 
     @Autowired
@@ -58,6 +61,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getAllStocks_ShouldReturnListOfStocks() throws Exception {
         // Arrange
         List<Stock> stocks = Arrays.asList(testStock);
@@ -76,6 +80,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getStockBySymbol_WhenStockExists_ShouldReturnStock() throws Exception {
         // Arrange
         when(stockService.getStockBySymbol("AAPL")).thenReturn(testStock);
@@ -92,6 +97,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getStockBySymbol_WhenStockNotFound_ShouldReturn404() throws Exception {
         // Arrange
         when(stockService.getStockBySymbol("INVALID")).thenThrow(new StockNotFoundException("INVALID"));
@@ -106,6 +112,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void updateStockPrice_WhenValidPrice_ShouldReturnUpdatedStock() throws Exception {
         // Arrange
         Stock updatedStock = new Stock(
@@ -132,6 +139,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void updateStockPrice_WhenPriceMissing_ShouldReturn400() throws Exception {
         // Arrange
         Map<String, String> emptyUpdate = new HashMap<>();
@@ -147,6 +155,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createStock_WhenValidStock_ShouldReturn201() throws Exception {
         // Arrange
         when(stockService.stockExists(anyString())).thenReturn(false);
@@ -164,6 +173,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createStock_WhenStockExists_ShouldReturn200() throws Exception {
         // Arrange
         when(stockService.stockExists(anyString())).thenReturn(true);
@@ -180,6 +190,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void createStock_WhenInvalidStock_ShouldReturn400() throws Exception {
         // Arrange - Create stock with missing required fields
         Stock invalidStock = new Stock();
@@ -195,6 +206,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void updateStock_WhenValidStock_ShouldReturnUpdatedStock() throws Exception {
         // Arrange
         when(stockService.getStockBySymbol("AAPL")).thenReturn(testStock);
@@ -212,6 +224,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void updateStock_WhenStockNotFound_ShouldReturn404() throws Exception {
         // Arrange
         when(stockService.getStockBySymbol("INVALID")).thenThrow(new StockNotFoundException("INVALID"));
@@ -227,6 +240,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void deleteStock_WhenStockExists_ShouldReturn204() throws Exception {
         // Arrange
         when(stockService.deleteStock("AAPL")).thenReturn(true);
@@ -239,6 +253,7 @@ class StockControllerTest {
     }
 
     @Test
+    @WithMockUser
     void deleteStock_WhenStockNotFound_ShouldReturn404() throws Exception {
         // Arrange
         when(stockService.deleteStock("INVALID")).thenReturn(false);
