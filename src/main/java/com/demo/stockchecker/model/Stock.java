@@ -1,5 +1,9 @@
 package com.demo.stockchecker.model;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -14,29 +18,39 @@ import java.util.Objects;
  * This model contains stock symbol, name, pricing information, and change metrics.
  * 
  * @author Demo Team
- * @version 1.0.0
+ * @version 2.0.0
  */
+@Entity
+@Table(name = "stocks")
 public class Stock {
 
+    @Id
+    @Column(name = "symbol", length = 10)
     @NotBlank(message = "Stock symbol is required")
     private String symbol;
 
+    @Column(name = "name", nullable = false)
     @NotBlank(message = "Stock name is required")
     private String name;
 
+    @Column(name = "current_price", nullable = false)
     @NotNull(message = "Current price is required")
     @Positive(message = "Current price must be positive")
     private BigDecimal currentPrice;
 
+    @Column(name = "price_change")
     @NotNull(message = "Price change is required")
     private BigDecimal change;
 
+    @Column(name = "change_percent")
     @NotNull(message = "Change percent is required")
     private BigDecimal changePercent;
 
+    @Column(name = "volume")
     @PositiveOrZero(message = "Volume must be zero or positive")
     private Long volume;
 
+    @Column(name = "last_updated")
     private LocalDateTime lastUpdated;
 
     /**

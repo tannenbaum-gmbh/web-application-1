@@ -6,6 +6,7 @@ import com.demo.stockchecker.repository.StockRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -17,7 +18,7 @@ import java.util.List;
  * Provides business logic for stock operations.
  * 
  * @author Demo Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 @Service
 public class StockServiceImpl implements StockService {
@@ -52,7 +53,7 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("Stock symbol cannot be null or empty");
         }
         
-        return stockRepository.findBySymbol(symbol.toUpperCase())
+        return stockRepository.findBySymbolIgnoreCase(symbol)
                 .orElseThrow(() -> {
                     logger.error("Stock not found: {}", symbol);
                     return new StockNotFoundException(symbol.toUpperCase());
@@ -60,6 +61,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
     public Stock updateStockPrice(String symbol, BigDecimal newPrice) {
         logger.debug("Updating price for stock: {} to {}", symbol, newPrice);
         
@@ -106,6 +108,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
     public Stock saveStock(Stock stock) {
         if (stock == null) {
             logger.error("Stock object is null");
@@ -129,6 +132,7 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    @Transactional
     public boolean deleteStock(String symbol) {
         logger.debug("Deleting stock: {}", symbol);
         
@@ -137,15 +141,15 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("Stock symbol cannot be null or empty");
         }
         
-        boolean deleted = stockRepository.deleteBySymbol(symbol.toUpperCase());
-        
-        if (deleted) {
+        String upperSymbol = symbol.toUpperCase();
+        if (stockRepository.existsBySymbolIgnoreCase(upperSymbol)) {
+            stockRepository.deleteBySymbol(upperSymbol);
             logger.info("Deleted stock: {}", symbol);
+            return true;
         } else {
             logger.warn("Stock not found for deletion: {}", symbol);
+            return false;
         }
-        
-        return deleted;
     }
 
     @Override
@@ -156,6 +160,6 @@ public class StockServiceImpl implements StockService {
             return false;
         }
         
-        return stockRepository.existsBySymbol(symbol.toUpperCase());
+        return stockRepository.existsBySymbolIgnoreCase(symbol);
     }
 }

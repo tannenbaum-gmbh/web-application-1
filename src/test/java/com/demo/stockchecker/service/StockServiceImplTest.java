@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
  * Uses Mockito to mock dependencies and test service logic in isolation.
  * 
  * @author Demo Team
- * @version 1.0.0
+ * @version 2.0.0
  */
 @ExtendWith(MockitoExtension.class)
 class StockServiceImplTest {
@@ -68,7 +68,7 @@ class StockServiceImplTest {
     @Test
     void getStockBySymbol_WhenStockExists_ShouldReturnStock() {
         // Arrange
-        when(stockRepository.findBySymbol("AAPL")).thenReturn(Optional.of(testStock));
+        when(stockRepository.findBySymbolIgnoreCase("AAPL")).thenReturn(Optional.of(testStock));
 
         // Act
         Stock actualStock = stockService.getStockBySymbol("AAPL");
@@ -77,19 +77,19 @@ class StockServiceImplTest {
         assertNotNull(actualStock);
         assertEquals("AAPL", actualStock.getSymbol());
         assertEquals("Apple Inc.", actualStock.getName());
-        verify(stockRepository, times(1)).findBySymbol("AAPL");
+        verify(stockRepository, times(1)).findBySymbolIgnoreCase("AAPL");
     }
 
     @Test
     void getStockBySymbol_WhenStockNotFound_ShouldThrowException() {
         // Arrange
-        when(stockRepository.findBySymbol("INVALID")).thenReturn(Optional.empty());
+        when(stockRepository.findBySymbolIgnoreCase("INVALID")).thenReturn(Optional.empty());
 
         // Act & Assert
         assertThrows(StockNotFoundException.class, () -> {
             stockService.getStockBySymbol("INVALID");
         });
-        verify(stockRepository, times(1)).findBySymbol("INVALID");
+        verify(stockRepository, times(1)).findBySymbolIgnoreCase("INVALID");
     }
 
     @Test
@@ -98,7 +98,7 @@ class StockServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> {
             stockService.getStockBySymbol(null);
         });
-        verify(stockRepository, never()).findBySymbol(anyString());
+        verify(stockRepository, never()).findBySymbolIgnoreCase(anyString());
     }
 
     @Test
@@ -107,14 +107,14 @@ class StockServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> {
             stockService.getStockBySymbol("");
         });
-        verify(stockRepository, never()).findBySymbol(anyString());
+        verify(stockRepository, never()).findBySymbolIgnoreCase(anyString());
     }
 
     @Test
     void updateStockPrice_WhenValidPrice_ShouldUpdateAndReturnStock() {
         // Arrange
         BigDecimal newPrice = new BigDecimal("160.00");
-        when(stockRepository.findBySymbol("AAPL")).thenReturn(Optional.of(testStock));
+        when(stockRepository.findBySymbolIgnoreCase("AAPL")).thenReturn(Optional.of(testStock));
         when(stockRepository.save(any(Stock.class))).thenAnswer(i -> i.getArguments()[0]);
 
         // Act
@@ -125,7 +125,7 @@ class StockServiceImplTest {
         assertEquals(newPrice, updatedStock.getCurrentPrice());
         assertEquals(new BigDecimal("10.00"), updatedStock.getChange());
         assertEquals(new BigDecimal("6.67"), updatedStock.getChangePercent());
-        verify(stockRepository, times(1)).findBySymbol("AAPL");
+        verify(stockRepository, times(1)).findBySymbolIgnoreCase("AAPL");
         verify(stockRepository, times(1)).save(any(Stock.class));
     }
 
@@ -202,53 +202,56 @@ class StockServiceImplTest {
     @Test
     void deleteStock_WhenStockExists_ShouldReturnTrue() {
         // Arrange
-        when(stockRepository.deleteBySymbol("AAPL")).thenReturn(true);
+        when(stockRepository.existsBySymbolIgnoreCase("AAPL")).thenReturn(true);
+        doNothing().when(stockRepository).deleteBySymbol("AAPL");
 
         // Act
         boolean result = stockService.deleteStock("AAPL");
 
         // Assert
         assertTrue(result);
+        verify(stockRepository, times(1)).existsBySymbolIgnoreCase("AAPL");
         verify(stockRepository, times(1)).deleteBySymbol("AAPL");
     }
 
     @Test
     void deleteStock_WhenStockNotFound_ShouldReturnFalse() {
         // Arrange
-        when(stockRepository.deleteBySymbol("INVALID")).thenReturn(false);
+        when(stockRepository.existsBySymbolIgnoreCase("INVALID")).thenReturn(false);
 
         // Act
         boolean result = stockService.deleteStock("INVALID");
 
         // Assert
         assertFalse(result);
-        verify(stockRepository, times(1)).deleteBySymbol("INVALID");
+        verify(stockRepository, times(1)).existsBySymbolIgnoreCase("INVALID");
+        verify(stockRepository, never()).deleteBySymbol(anyString());
     }
 
     @Test
     void stockExists_WhenStockExists_ShouldReturnTrue() {
         // Arrange
-        when(stockRepository.existsBySymbol("AAPL")).thenReturn(true);
+        when(stockRepository.existsBySymbolIgnoreCase("AAPL")).thenReturn(true);
 
         // Act
         boolean result = stockService.stockExists("AAPL");
 
         // Assert
         assertTrue(result);
-        verify(stockRepository, times(1)).existsBySymbol("AAPL");
+        verify(stockRepository, times(1)).existsBySymbolIgnoreCase("AAPL");
     }
 
     @Test
     void stockExists_WhenStockNotFound_ShouldReturnFalse() {
         // Arrange
-        when(stockRepository.existsBySymbol("INVALID")).thenReturn(false);
+        when(stockRepository.existsBySymbolIgnoreCase("INVALID")).thenReturn(false);
 
         // Act
         boolean result = stockService.stockExists("INVALID");
 
         // Assert
         assertFalse(result);
-        verify(stockRepository, times(1)).existsBySymbol("INVALID");
+        verify(stockRepository, times(1)).existsBySymbolIgnoreCase("INVALID");
     }
 
     @Test
@@ -258,6 +261,6 @@ class StockServiceImplTest {
 
         // Assert
         assertFalse(result);
-        verify(stockRepository, never()).existsBySymbol(anyString());
+        verify(stockRepository, never()).existsBySymbolIgnoreCase(anyString());
     }
 }
