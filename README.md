@@ -150,22 +150,31 @@ DELETE /api/stocks/{symbol}     → Delete stock
 HEAD   /api/stocks/{symbol}     → Check if stock exists
 ```
 
+### Authentication
+- All REST endpoints (except `/api/stocks/health`) require a valid JWT bearer token signed with the `jwt.secret` configured in `application.properties`.
+- Include the header `Authorization: Bearer <token>` with each request.
+- Tokens should be signed using the HS256 algorithm and respect the configured expiration window.
+
 ### Sample Request
 ```bash
 # Get all stocks
-curl http://localhost:8080/api/stocks
+curl http://localhost:8080/api/stocks \
+  -H "Authorization: Bearer <token>"
 
 # Get specific stock
-curl http://localhost:8080/api/stocks/AAPL
+curl http://localhost:8080/api/stocks/AAPL \
+  -H "Authorization: Bearer <token>"
 
 # Create new stock
 curl -X POST http://localhost:8080/api/stocks \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"symbol":"NVDA","name":"NVIDIA Corporation","currentPrice":500.00,"change":5.00,"changePercent":1.0}'
 
 # Update stock price
 curl -X PUT http://localhost:8080/api/stocks/AAPL/price \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
   -d '{"currentPrice":155.00}'
 ```
 

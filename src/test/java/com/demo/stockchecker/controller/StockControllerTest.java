@@ -2,6 +2,9 @@ package com.demo.stockchecker.controller;
 
 import com.demo.stockchecker.exception.StockNotFoundException;
 import com.demo.stockchecker.model.Stock;
+import com.demo.stockchecker.config.SecurityConfig;
+import com.demo.stockchecker.security.JwtAuthenticationFilter;
+import com.demo.stockchecker.security.JwtService;
 import com.demo.stockchecker.service.StockService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -9,8 +12,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.ResultActions;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
@@ -33,6 +41,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @version 1.0.0
  */
 @WebMvcTest(StockController.class)
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
+@TestPropertySource(properties = {
+        "jwt.secret=test-secret-key-change-me-1234567890-test",
+        "jwt.expiration=3600000"
+})
 class StockControllerTest {
 
     @Autowired
@@ -41,10 +54,14 @@ class StockControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private JwtService jwtService;
+
     @MockBean
     private StockService stockService;
 
     private Stock testStock;
+    private String bearerToken;
 
     @BeforeEach
     void setUp() {
@@ -55,6 +72,26 @@ class StockControllerTest {
             new BigDecimal("2.50"),
             new BigDecimal("1.69")
         );
+
+        bearerToken = "Bearer " + jwtService.generateToken("test-user");
+    }
+
+    private ResultActions performAuthorized(MockHttpServletRequestBuilder requestBuilder) throws Exception {
+        return mockMvc.perform(requestBuilder.header(HttpHeaders.AUTHORIZATION, bearerToken));
+    }
+
+    @Test
+    void getAllStocks_WhenTokenMissing_ShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/stocks"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void getAllStocks_WhenTokenInvalid_ShouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/stocks")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error", is("Invalid or expired JWT token")));
     }
 
     @Test
@@ -64,7 +101,7 @@ class StockControllerTest {
         when(stockService.getAllStocks()).thenReturn(stocks);
 
         // Act & Assert
-        mockMvc.perform(get("/api/stocks"))
+        performAuthorized(get("/api/stocks"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -81,7 +118,7 @@ class StockControllerTest {
         when(stockService.getStockBySymbol("AAPL")).thenReturn(testStock);
 
         // Act & Assert
-        mockMvc.perform(get("/api/stocks/AAPL"))
+        performAuthorized(get("/api/stocks/AAPL"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.symbol", is("AAPL")))
@@ -97,7 +134,7 @@ class StockControllerTest {
         when(stockService.getStockBySymbol("INVALID")).thenThrow(new StockNotFoundException("INVALID"));
 
         // Act & Assert
-        mockMvc.perform(get("/api/stocks/INVALID"))
+        performAuthorized(get("/api/stocks/INVALID"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.message", containsString("INVALID")));
@@ -121,7 +158,7 @@ class StockControllerTest {
         priceUpdate.put("price", new BigDecimal("160.00"));
 
         // Act & Assert
-        mockMvc.perform(put("/api/stocks/AAPL/price")
+        performAuthorized(put("/api/stocks/AAPL/price")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(priceUpdate)))
                 .andExpect(status().isOk())
@@ -137,7 +174,7 @@ class StockControllerTest {
         Map<String, String> emptyUpdate = new HashMap<>();
 
         // Act & Assert
-        mockMvc.perform(put("/api/stocks/AAPL/price")
+        performAuthorized(put("/api/stocks/AAPL/price")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(emptyUpdate)))
                 .andExpect(status().isBadRequest())
@@ -153,7 +190,7 @@ class StockControllerTest {
         when(stockService.saveStock(any(Stock.class))).thenReturn(testStock);
 
         // Act & Assert
-        mockMvc.perform(post("/api/stocks")
+        performAuthorized(post("/api/stocks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testStock)))
                 .andExpect(status().isCreated())
@@ -170,7 +207,7 @@ class StockControllerTest {
         when(stockService.saveStock(any(Stock.class))).thenReturn(testStock);
 
         // Act & Assert
-        mockMvc.perform(post("/api/stocks")
+        performAuthorized(post("/api/stocks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testStock)))
                 .andExpect(status().isOk())
@@ -186,7 +223,7 @@ class StockControllerTest {
         invalidStock.setSymbol("");  // Invalid: empty symbol
 
         // Act & Assert
-        mockMvc.perform(post("/api/stocks")
+        performAuthorized(post("/api/stocks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidStock)))
                 .andExpect(status().isBadRequest());
@@ -201,7 +238,7 @@ class StockControllerTest {
         when(stockService.saveStock(any(Stock.class))).thenReturn(testStock);
 
         // Act & Assert
-        mockMvc.perform(put("/api/stocks/AAPL")
+        performAuthorized(put("/api/stocks/AAPL")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testStock)))
                 .andExpect(status().isOk())
@@ -217,7 +254,7 @@ class StockControllerTest {
         when(stockService.getStockBySymbol("INVALID")).thenThrow(new StockNotFoundException("INVALID"));
 
         // Act & Assert
-        mockMvc.perform(put("/api/stocks/INVALID")
+        performAuthorized(put("/api/stocks/INVALID")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testStock)))
                 .andExpect(status().isNotFound());
@@ -232,7 +269,7 @@ class StockControllerTest {
         when(stockService.deleteStock("AAPL")).thenReturn(true);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/stocks/AAPL"))
+        performAuthorized(delete("/api/stocks/AAPL"))
                 .andExpect(status().isNoContent());
 
         verify(stockService, times(1)).deleteStock("AAPL");
@@ -244,7 +281,7 @@ class StockControllerTest {
         when(stockService.deleteStock("INVALID")).thenReturn(false);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/stocks/INVALID"))
+        performAuthorized(delete("/api/stocks/INVALID"))
                 .andExpect(status().isNotFound());
 
         verify(stockService, times(1)).deleteStock("INVALID");
